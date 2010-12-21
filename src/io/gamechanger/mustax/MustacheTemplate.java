@@ -2,8 +2,7 @@
 
 package io.gamechanger.mustax;
 
-import java.util.Map;
-import java.util.Stack;
+import java.util.*;
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 
@@ -11,11 +10,21 @@ public class MustacheTemplate {
     final MustacheToken[] _tokens;
     final int _lengthEstimate;
 
+    private static MustacheToken[] arr(final List<MustacheToken> tokens) {
+        final MustacheToken[] arr = new MustacheToken[tokens.size()];
+        tokens.toArray(arr);
+        return arr;
+    }
+
+    public MustacheTemplate(final List<MustacheToken> tokens) {
+        this(arr(tokens));
+    }
+
     public MustacheTemplate(final MustacheToken[] tokens) {
         _tokens = tokens;
         int le = 0;
         for ( MustacheToken token : tokens )
-            le += token.lengthEstimate();
+            le += token.estimateLength();
         _lengthEstimate = le;
     }
 
@@ -45,11 +54,11 @@ public class MustacheTemplate {
 
         try {
             Field f = context.getClass().getField(name);
-            if ( f )
+            if ( f != null )
                 return f.get( context );
 
             Method m = context.getClass().getMethod(name);
-            if ( m )
+            if ( m != null )
                 return m.invoke( context );
         } catch ( Exception e ) {
             // don't care about reflection failures
@@ -115,13 +124,17 @@ public class MustacheTemplate {
             _subtokens = subtokens;
         }
 
+        public final String name() {
+            return _name;
+        }
+
         public final void renderInContext(final Object context, final StringBuilder buffer) {
             Object subcontext = MustacheTemplate.getValue( context, _name );
             if ( subcontext == null ) return;
 
             if ( subcontext instanceof List ) {
                 for ( Object o : (List)subcontext ) {
-                    if ( o !== null ) continue;
+                    if ( o != null ) continue;
                     for ( MustacheToken token : _subtokens )
                         token.renderInContext(o, buffer);
                 }
@@ -138,21 +151,24 @@ public class MustacheTemplate {
                 est += sub.estimateLength();
             return est;
         }
+
+        public final ContextToken withAnotherChild(final MustacheToken child) {
+            MustacheToken[] tokens = new MustacheToken[_subtokens.length+1];
+            System.arraycopy(_subtokens, 0, tokens, 0, _subtokens.length);
+            tokens[tokens.length-1] = child;
+            return new ContextToken(_name, tokens);
+        }
     }
 
-    public static PartialToken implements MustacheToken {
+    public static class PartialToken implements MustacheToken {
         private final MustacheTemplate _template;
-        private final String _name;
 
-        public PartialToken(String name, MustacheTemplate template) {
-            _name = name;
+        public PartialToken(MustacheTemplate template) {
             _template = template;
         }
 
         public final void renderInContext(final Object context, final StringBuilder buffer) {
-            Object subcontext = MustacheTemplate.getValue( context, _name );
-            if ( subcontext )
-                _template.render(subcontext, buffer);
+            _template.render(context, buffer);
         }
 
         public final int estimateLength() {
@@ -160,12 +176,17 @@ public class MustacheTemplate {
         }
     }
 
-    public static ThisToken implements MustacheToken {
+    public static class ThisToken implements MustacheToken {
+        public static final ThisToken THIS_TOKEN = new ThisToken();
+
         public ThisToken() {
         }
 
         public final void renderInContext(final Object context, final StringBuilder buffer) {
-            buffer.append( context.toString() );
+            if ( context instanceof MustacheRenderable )
+                ((MustacheRenderable)context).renderInContext(context, buffer);
+            else
+                buffer.append( String.valueOf( context ) );
         }
 
         public final int estimateLength() {
