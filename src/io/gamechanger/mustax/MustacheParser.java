@@ -100,7 +100,11 @@ public class MustacheParser {
                 final char ctl = (char)input.read();
                 switch ( ctl ) {
                 case '#': // context
-                    delegate.contextStart( this, getVarName(buffer, input) );
+                    delegate.contextStart( this, getVarName(buffer, input), false );
+                    break;
+
+                case '^': // reversed context
+                    delegate.contextStart( this, getVarName(buffer, input), true );
                     break;
 
                 case '>': // partial
@@ -135,7 +139,7 @@ public class MustacheParser {
 
         public void start(MustacheParser parser);
         public void text(MustacheParser parser, String text);
-        public void contextStart(MustacheParser parser, String varName);
+        public void contextStart(MustacheParser parser, String varName, boolean reversed);
         public void contextEnd(MustacheParser parser, String varName);
         public void variable(MustacheParser parser, String varName);
         public void partial(MustacheParser parser, String varName);
@@ -167,8 +171,8 @@ public class MustacheParser {
             _push( new TextToken( text ) );
         }
 
-        public void contextStart(final MustacheParser parser, final String varName) {
-            ContextToken token = new ContextToken(varName, new MustacheToken[0]);
+        public void contextStart(final MustacheParser parser, final String varName, final boolean reversed) {
+            ContextToken token = new ContextToken(varName, new MustacheToken[0], reversed);
             if ( ! _context.empty() )
                 _context.push( _context.pop().withAnotherChild(token) );
             _context.push( token );

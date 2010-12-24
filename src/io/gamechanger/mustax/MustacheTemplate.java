@@ -146,32 +146,51 @@ public class MustacheTemplate {
     static class ContextToken implements MustacheToken {
         private final MustacheToken[] _subtokens;
         private final String _name;
+        private final boolean _reversed;
 
-        public ContextToken(String name, MustacheToken[] subtokens) {
+        public ContextToken(String name, MustacheToken[] subtokens, boolean reversed) {
             _name = name;
             _subtokens = subtokens;
+            _reversed = reversed;
         }
 
         public final String name() {
             return _name;
         }
 
+        private final void _renderSubTokens(final Object context, final StringBuilder buffer) {
+            for ( MustacheToken t : _subtokens )
+                t.renderInContext(context, buffer);
+        }
+
         public final void renderInContext(final Object context, final StringBuilder buffer) {
             Object subcontext = MustacheTemplate.getValue( context, _name );
-            if ( subcontext == null ) return;
+            if ( subcontext == null ) {
+                if ( _reversed )
+                    _renderSubTokens(context, buffer);
+                return;
+            } else if ( _reversed )
+                return;
 
-            if ( subcontext instanceof List ) {
+            boolean truthiness = ! _reversed;
+            if ( subcontext instanceof Boolean ) {
+                if ( ((Boolean)subcontext).booleanValue() == truthiness )
+                    _renderSubTokens(context, buffer);
+                return;
 
-                for ( Object o : (List)subcontext ) {
-                    if ( o == null ) continue;
-                    for ( MustacheToken token : _subtokens )
-                        token.renderInContext(o, buffer);
-                }
-
-            } else {
-                for ( MustacheToken token : _subtokens )
-                    token.renderInContext(subcontext, buffer);
+            } else if ( subcontext instanceof Number ) {
+                Number n = (Number)subcontext;
+                if ( ( n.intValue() != 0 ) == truthiness )
+                    _renderSubTokens(context, buffer);
+                return;
             }
+
+            if (subcontext instanceof List) {
+                for ( Object o : (List)subcontext )
+                    if ( o != null )
+                        _renderSubTokens(o, buffer);
+            } else
+                _renderSubTokens(subcontext, buffer);
         }
 
         public final int estimateLength() {
@@ -196,7 +215,7 @@ public class MustacheTemplate {
             MustacheToken[] tokens = new MustacheToken[_subtokens.length+1];
             System.arraycopy(_subtokens, 0, tokens, 0, _subtokens.length);
             tokens[tokens.length-1] = child;
-            return new ContextToken(_name, tokens);
+            return new ContextToken(_name, tokens, _reversed);
         }
     }
 

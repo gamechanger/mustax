@@ -61,6 +61,24 @@ public class MustaxTest {
         assertEquals( "hi Kiril", template.render(context));
     }
 
+    @Test public void testInvertedSection() throws java.io.IOException {
+        Map<String,String> map = new HashMap();
+        map.put("a", "hi {{^person}}Nobody{{/person}}");
+        MustacheContext ctx = new MapMustacheContext(map);
+        MustacheParser parser = new MustacheParser(ctx);
+        MustacheTemplate template = parser.templateByName( "a" );
+        assertNotNull(template);
+
+        Map<String,Object> context = new HashMap();
+        context.put("z", "zebra");
+        Map<String,String> person = new HashMap();
+        person.put("name", "Kiril");
+        context.put("person", person);
+
+        assertEquals("hi ", template.render(context));
+        assertEquals("hi Nobody", template.render(new Object()));
+    }
+
     @Test public void testListContext() throws java.io.IOException {
         Map<String,String> map = new HashMap();
         map.put("a", "{{#person}}hi {{name}}, {{/person}}");
