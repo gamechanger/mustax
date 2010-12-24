@@ -11,12 +11,13 @@ import java.util.*;
 
 public class MustacheParser {
 
-    public static final void main(String...args) {
+    public static final void main(String...args) throws Exception {
         Map<String,String> map = new HashMap();
         map.put("a", "{{a}}");
-        map.put("b", "{{> a}}");
+        map.put("b", "here is {{#x}}{{> a}}{{/x}}");
         MustacheContext ctx = new MapMustacheContext(map);
         MustacheParser parser = new MustacheParser(ctx);
+        System.out.println("template b : " + parser.templateByName("b"));
     }
 
     private MustacheContext _ctx;
@@ -27,6 +28,10 @@ public class MustacheParser {
 
     public final MustacheContext parsingContext() {
         return _ctx;
+    }
+
+    public final MustacheTemplate templateByName(final String name) throws IOException {
+        return _ctx.getTemplate(name, this);
     }
 
     public final MustacheTemplate parse(final String input) {
@@ -46,12 +51,16 @@ public class MustacheParser {
 
     private final String getVarName(final StringBuilder buffer, final Reader input) throws IOException {
         while ( input.ready() ) {
-            final char c = (char)input.read();
-            if ( c == '}' && input.ready() ) {
-                final char c2 = (char)input.read();
+            int i = input.read();
+            if ( i == -1 )
+                break;
+            final char c = (char)i;//input.read();
+            if ( c == '}' && ( i = input.read() ) != -1 ) {
+                final char c2 = (char)i;
                 if ( c2 == '}' ) {
                     String name = buffer.toString().trim();
                     buffer.setLength(0);
+                    return name;
                 }
 
                 buffer.append(c);
@@ -68,15 +77,18 @@ public class MustacheParser {
 
         delegate.start( this );
 
-        while ( input.ready() ) {
-            final char c = (char)input.read();
+        int i = -1;
+        while ( input.ready() && ( i = input.read() ) != -1 ) {
+            final char c = (char)i;
 
             switch ( c ) {
             case '{':
-                final char c2 = (char)input.read();
-                if ( c2 != '{' ) {
+                i = input.ready() ? input.read() : -1;
+                final char c2 = (char)i;
+                if ( i == -1 || c2 != '{' ) {
                     buffer.append(c);
-                    buffer.append(c2);
+                    if ( i > -1 )
+                        buffer.append(c2);
                     continue;
                 }
 
@@ -100,6 +112,7 @@ public class MustacheParser {
                     break;
 
                 default:
+                    buffer.append(ctl);
                     delegate.variable( this, getVarName(buffer, input) );
                     break;
                 }

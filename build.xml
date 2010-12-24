@@ -1,15 +1,50 @@
 <project name="mustax" default="compile" basedir=".">
   <property name="src" location="src"/>
+  <property name="test" location="test"/>
   <property name="build" location="build"/>
+  <property name="testbuild" location="test/build"/>
   <property name="dist" location="dist"/>
+  <property name="lib" location="lib"/>
+
+  <path id="mustax.build">
+    <pathelement location="${build}"/>
+  </path>
+
+  <path id="mustax.libs">
+    <fileset dir="lib">
+      <include name="**/*.jar"/>
+    </fileset>
+  </path>
 
   <target name="init">
     <tstamp/>
     <mkdir dir="${build}"/>
+    <mkdir dir="${dist}"/>
   </target>
 
   <target name="compile" depends="init">
     <javac srcdir="${src}" destdir="${build}"/>
+    <javac srcdir="${test}" destdir="${build}">
+      <classpath>
+        <path refid="mustax.build"/>
+        <path refid="mustax.libs"/>
+      </classpath>
+    </javac>
+  </target>
+
+  <target name="dist" depends="compile">
+    <mkdir dir="${dist}/lib"/>
+    <jar jarfile="${dist}/lib/mustax.jar" basedir="${build}"/>
+  </target>
+
+  <target name="test" depends="compile">
+    <java classname="org.junit.runner.JUnitCore" fork="true">
+      <arg value="io.gamechanger.mustax.MustaxTest"/>
+      <classpath>
+        <path refid="mustax.build"/>
+        <path refid="mustax.libs"/>
+      </classpath>
+    </java>
   </target>
 
   <target name="clean">

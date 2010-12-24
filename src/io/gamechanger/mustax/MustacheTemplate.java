@@ -28,6 +28,18 @@ public class MustacheTemplate {
         _lengthEstimate = le;
     }
 
+    public final String toString() {
+        final StringBuilder sb = new StringBuilder( "<MustacheTemplate: " );
+        int len = sb.length();
+        for ( MustacheToken t : _tokens ) {
+            if ( sb.length() > len )
+                sb.append( ", " );
+            sb.append( t.toString() );
+        }
+        sb.append( " >" );
+        return sb.toString();
+    }
+
     public final int estimateLength() {
         return _lengthEstimate;
     }
@@ -53,15 +65,23 @@ public class MustacheTemplate {
         }
 
         try {
-            Field f = context.getClass().getField(name);
+            Field f = context.getClass().getDeclaredField(name);
             if ( f != null )
                 return f.get( context );
+        } catch ( NoSuchFieldException nsfe ) {
+        } catch ( SecurityException e ) {
+        } catch ( IllegalAccessException iae ) {
+        }
 
+        try {
             Method m = context.getClass().getMethod(name);
             if ( m != null )
                 return m.invoke( context );
-        } catch ( Exception e ) {
-            // don't care about reflection failures
+        } catch ( NoSuchMethodException nsfe ) {
+        } catch ( SecurityException e ) {
+        } catch ( IllegalAccessException iae ) {
+        } catch ( java.lang.reflect.InvocationTargetException ite ) {
+            throw new java.lang.reflect.UndeclaredThrowableException( ite );
         }
 
         return null;
@@ -88,6 +108,10 @@ public class MustacheTemplate {
         public int estimateLength() {
             return _txt.length();
         }
+
+        public String toString() {
+            return "<TextToken: " + _txt + ">";
+        }
     }
 
     static class PropertyToken implements MustacheToken {
@@ -112,6 +136,10 @@ public class MustacheTemplate {
 
         public final int estimateLength() {
             return _name.length(); // well, why not
+        }
+
+        public String toString() {
+            return "<PropertyToken: " + _name + ">";
         }
     }
 
@@ -150,6 +178,17 @@ public class MustacheTemplate {
             for ( MustacheToken sub : _subtokens )
                 est += sub.estimateLength();
             return est;
+        }
+
+        public String toString() {
+            final StringBuilder sb = new StringBuilder("[");
+            for ( MustacheToken t : _subtokens ) {
+                if ( sb.length() > 1 )
+                    sb.append( ", " );
+                sb.append(t.toString());
+            }
+            sb.append("]");
+            return "<ContextToken: " + _name + ":" + sb + ">";
         }
 
         public final ContextToken withAnotherChild(final MustacheToken child) {
