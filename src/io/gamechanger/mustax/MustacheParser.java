@@ -11,6 +11,14 @@ import java.util.*;
 
 public class MustacheParser {
 
+    public static final void main(String...args) {
+        Map<String,String> map = new HashMap();
+        map.put("a", "{{a}}");
+        map.put("b", "{{> a}}");
+        MustacheContext ctx = new MapMustacheContext(map);
+        MustacheParser parser = new MustacheParser(ctx);
+    }
+
     private MustacheContext _ctx;
 
     public MustacheParser(final MustacheContext ctx) {
@@ -109,11 +117,6 @@ public class MustacheParser {
         delegate.end( this );
     }
 
-    public static interface MustacheContext {
-        public MustacheTemplate getTemplate(String name);
-        public Reader getTemplateSource(String name);
-    }
-
     public static interface MustacheParserDelegate {
         public List<MustacheToken> tokens();
 
@@ -176,15 +179,12 @@ public class MustacheParser {
 
         public void partial(final MustacheParser parser, final String varName) {
             MustacheContext parsingContext = parser.parsingContext();
-            MustacheTemplate partialTemplate = parsingContext.getTemplate( varName );
-            if ( partialTemplate == null ) {
-                try {
-                    partialTemplate = parser.parse( parsingContext.getTemplateSource( varName ) );
-                } catch ( Exception e ) {
-                    throw new UndeclaredThrowableException(e);
-                }
+            try {
+                _push( new PartialToken( parser.parsingContext().getTemplate(varName, parser) ) );
+                //partialTemplate = parser.parse( parsingContext.getTemplateSource( varName ) );
+            } catch ( IOException e ) {
+                throw new UndeclaredThrowableException(e);
             }
-            _push( new PartialToken( partialTemplate ) );
         }
 
         public final void end(final MustacheParser parser) {
