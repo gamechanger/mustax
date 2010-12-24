@@ -60,4 +60,26 @@ public class MustaxTest {
         context.put("person", person);
         assertEquals( "hi Kiril", template.render(context));
     }
+
+    @Test public void testListContext() throws java.io.IOException {
+        Map<String,String> map = new HashMap();
+        map.put("a", "{{#person}}hi {{name}}, {{/person}}");
+        MustacheContext ctx = new MapMustacheContext(map);
+        MustacheParser parser = new MustacheParser(ctx);
+        MustacheTemplate template = parser.templateByName( "a" );
+        assertNotNull(template);
+
+        Map<String,Object> context = new HashMap();
+        context.put("z", "zebra");
+        Map<String,String> m = new HashMap();
+        m.put("name", "Kiril");
+        List people = new ArrayList();
+        people.add(m);
+        m = new HashMap();
+        m.put("name", "Ted");
+        people.add(m);
+
+        context.put("person", people);
+        assertEquals( "hi Kiril, hi Ted, ", template.render(context));
+    }
 }

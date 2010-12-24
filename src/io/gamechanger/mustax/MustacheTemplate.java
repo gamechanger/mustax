@@ -161,8 +161,9 @@ public class MustacheTemplate {
             if ( subcontext == null ) return;
 
             if ( subcontext instanceof List ) {
+
                 for ( Object o : (List)subcontext ) {
-                    if ( o != null ) continue;
+                    if ( o == null ) continue;
                     for ( MustacheToken token : _subtokens )
                         token.renderInContext(o, buffer);
                 }
