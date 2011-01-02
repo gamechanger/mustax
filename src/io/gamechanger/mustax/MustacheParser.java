@@ -197,7 +197,7 @@ public class MustacheParser {
         public void partial(final MustacheParser parser, final String varName) {
             MustacheContext parsingContext = parser.parsingContext();
             try {
-                _push( new PartialToken( parser.parsingContext().getTemplate(varName, parser) ) );
+                _push( new PartialToken( varName, parser.parsingContext().getTemplate(varName, parser) ) );
                 //partialTemplate = parser.parse( parsingContext.getTemplateSource( varName ) );
             } catch ( IOException e ) {
                 throw new UndeclaredThrowableException(e);

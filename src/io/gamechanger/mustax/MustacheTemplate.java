@@ -92,6 +92,7 @@ public class MustacheTemplate {
     static interface MustacheToken {
         public void renderInContext(Object context, StringBuilder buffer);
         public int estimateLength();
+        public String toRepresentation();
     }
 
     static class TextToken implements MustacheToken {
@@ -111,6 +112,10 @@ public class MustacheTemplate {
 
         public String toString() {
             return "<TextToken: " + _txt + ">";
+        }
+
+        public String toRepresentation() {
+            return _txt;
         }
     }
 
@@ -141,6 +146,10 @@ public class MustacheTemplate {
         public String toString() {
             return "<PropertyToken: " + _name + ">";
         }
+
+        public String toRepresentation() {
+            return "{{" + _name + "}}";
+        }
     }
 
     static class ContextToken implements MustacheToken {
@@ -156,6 +165,10 @@ public class MustacheTemplate {
 
         public final String name() {
             return _name;
+        }
+
+        public final String toRepresentation() {
+            return "{{" + ( _reversed ? "^" : "#") + _name + "}}";
         }
 
         private final void _renderSubTokens(final Object context, final StringBuilder buffer) {
@@ -189,6 +202,14 @@ public class MustacheTemplate {
                 for ( Object o : (List)subcontext )
                     if ( o != null )
                         _renderSubTokens(o, buffer);
+
+            } else if ( subcontext instanceof MustacheOperation ) {
+                final StringBuilder sb = new StringBuilder();
+                for ( MustacheToken t : _subtokens )
+                    sb.append( t.toRepresentation() );
+                MustacheOperation op = (MustacheOperation)subcontext;
+                op.renderContents( sb.toString(), buffer );
+
             } else
                 _renderSubTokens(subcontext, buffer);
         }
@@ -220,10 +241,16 @@ public class MustacheTemplate {
     }
 
     public static class PartialToken implements MustacheToken {
+        private final String _name;
         private final MustacheTemplate _template;
 
-        public PartialToken(MustacheTemplate template) {
+        public PartialToken(String name, MustacheTemplate template) {
+            _name = name;
             _template = template;
+        }
+
+        public final String toRepresentation() {
+            return "{{> " + _name + "}}";
         }
 
         public final void renderInContext(final Object context, final StringBuilder buffer) {
@@ -239,6 +266,10 @@ public class MustacheTemplate {
         public static final ThisToken THIS_TOKEN = new ThisToken();
 
         public ThisToken() {
+        }
+
+        public final String toRepresentation() {
+            return "{{.}}";
         }
 
         public final void renderInContext(final Object context, final StringBuilder buffer) {
