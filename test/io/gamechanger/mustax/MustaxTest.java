@@ -100,4 +100,27 @@ public class MustaxTest {
         context.put("person", people);
         assertEquals( "hi Kiril, hi Ted, ", template.render(context));
     }
+
+    @Test public void testNestedContext() throws java.io.IOException {
+        Map<String,String> map = new HashMap();
+        map.put("a", "{{#frog}}hi {{name}}, {{/frog}}");
+        MustacheContext ctx = new MapMustacheContext(map);
+        MustacheParser parser = new MustacheParser(ctx);
+        MustacheTemplate template = parser.templateByName( "a" );
+        assertNotNull(template);
+
+        Map<String,Object> context = new HashMap();
+        context.put("z", "zebra");
+        Map<String,Object> m = new HashMap();
+        m.put("name", "Kiril");
+        m.put("frog", Boolean.TRUE);
+        List people = new ArrayList();
+        people.add(m);
+        m = new HashMap();
+        m.put("name", "Ted");
+        people.add(m);
+
+        context.put("person", people);
+        assertEquals( "hi Kiril, ", template.render(context));
+    }
 }

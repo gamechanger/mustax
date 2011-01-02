@@ -51,37 +51,59 @@ public class MustacheTemplate {
     }
 
     public final void render(final Object context, final StringBuilder buffer) {
+        LinkedList contextStack = new LinkedList();
+        contextStack.add( context );
+        renderInContext( contextStack, buffer );
+    }
+
+    public final void renderInContext(final List context, final StringBuilder buffer) {
         for ( MustacheToken token : _tokens )
             token.renderInContext(context, buffer);
     }
 
-    public static Object getValue(final Object context, final String name) {
-        if ( context == null )
-            return null;
+    public static Object getValue(final List context, final String name) {
 
-        if ( context instanceof Map ) {
-            Map m = (Map)context;
-            return m.get(name);
-        }
+        for ( Object object : context ) {
 
-        try {
-            Field f = context.getClass().getDeclaredField(name);
-            if ( f != null )
-                return f.get( context );
-        } catch ( NoSuchFieldException nsfe ) {
-        } catch ( SecurityException e ) {
-        } catch ( IllegalAccessException iae ) {
-        }
+            if ( object == null )
+                continue;
 
-        try {
-            Method m = context.getClass().getMethod(name);
-            if ( m != null )
-                return m.invoke( context );
-        } catch ( NoSuchMethodException nsfe ) {
-        } catch ( SecurityException e ) {
-        } catch ( IllegalAccessException iae ) {
-        } catch ( java.lang.reflect.InvocationTargetException ite ) {
-            throw new java.lang.reflect.UndeclaredThrowableException( ite );
+            if ( object instanceof Map ) {
+                Map m = (Map)object;
+                Object v = m.get(name);
+                if ( v != null )
+                    return v;
+                else
+                    continue;
+            }
+
+            try {
+                Field f = object.getClass().getDeclaredField(name);
+                if ( f != null ) {
+                    Object v = f.get( object );
+                    if ( v != null )
+                        return v;
+                    continue;
+                }
+            } catch ( NoSuchFieldException nsfe ) {
+            } catch ( SecurityException e ) {
+            } catch ( IllegalAccessException iae ) {
+            }
+
+            try {
+                Method m = object.getClass().getMethod(name);
+                if ( m != null ) {
+                    Object v = m.invoke( object );
+                    if ( v != null )
+                        return v;
+                    continue;
+                }
+            } catch ( NoSuchMethodException nsfe ) {
+            } catch ( SecurityException e ) {
+            } catch ( IllegalAccessException iae ) {
+            } catch ( java.lang.reflect.InvocationTargetException ite ) {
+                throw new java.lang.reflect.UndeclaredThrowableException( ite );
+            }
         }
 
         return null;
@@ -90,7 +112,7 @@ public class MustacheTemplate {
     // --- token classes --- //
 
     static interface MustacheToken {
-        public void renderInContext(Object context, StringBuilder buffer);
+        public void renderInContext(List context, StringBuilder buffer);
         public int estimateLength();
         public String toRepresentation();
     }
@@ -102,7 +124,7 @@ public class MustacheTemplate {
             _txt = txt;
         }
 
-        public final void renderInContext(final Object context, final StringBuilder buffer) {
+        public final void renderInContext(final List context, final StringBuilder buffer) {
             buffer.append(_txt);
         }
 
@@ -126,7 +148,7 @@ public class MustacheTemplate {
             _name = name;
         }
 
-        public final void renderInContext(final Object context, final StringBuilder buffer) {
+        public final void renderInContext(final List context, final StringBuilder buffer) {
             Object val = MustacheTemplate.getValue(context, _name);
             if ( val == null ) return;
 
@@ -171,12 +193,12 @@ public class MustacheTemplate {
             return "{{" + ( _reversed ? "^" : "#") + _name + "}}";
         }
 
-        private final void _renderSubTokens(final Object context, final StringBuilder buffer) {
+        private final void _renderSubTokens(final List context, final StringBuilder buffer) {
             for ( MustacheToken t : _subtokens )
                 t.renderInContext(context, buffer);
         }
 
-        public final void renderInContext(final Object context, final StringBuilder buffer) {
+        public final void renderInContext(final List context, final StringBuilder buffer) {
             Object subcontext = MustacheTemplate.getValue( context, _name );
             if ( subcontext == null ) {
                 if ( _reversed )
@@ -199,9 +221,12 @@ public class MustacheTemplate {
             }
 
             if (subcontext instanceof List) {
-                for ( Object o : (List)subcontext )
-                    if ( o != null )
-                        _renderSubTokens(o, buffer);
+                for ( Object o : (List)subcontext ) {
+                    if ( o == null ) continue;
+                    context.add( 0, o );
+                    _renderSubTokens(context, buffer);
+                    context.remove( 0 );
+                }
 
             } else if ( subcontext instanceof MustacheOperation ) {
                 final StringBuilder sb = new StringBuilder();
@@ -210,8 +235,11 @@ public class MustacheTemplate {
                 MustacheOperation op = (MustacheOperation)subcontext;
                 op.renderContents( sb.toString(), buffer );
 
-            } else
-                _renderSubTokens(subcontext, buffer);
+            } else {
+                context.add( 0, subcontext );
+                _renderSubTokens(context, buffer);
+                context.remove( 0 );
+            }
         }
 
         public final int estimateLength() {
@@ -253,8 +281,8 @@ public class MustacheTemplate {
             return "{{> " + _name + "}}";
         }
 
-        public final void renderInContext(final Object context, final StringBuilder buffer) {
-            _template.render(context, buffer);
+        public final void renderInContext(final List context, final StringBuilder buffer) {
+            _template.renderInContext(context, buffer);
         }
 
         public final int estimateLength() {
@@ -272,11 +300,12 @@ public class MustacheTemplate {
             return "{{.}}";
         }
 
-        public final void renderInContext(final Object context, final StringBuilder buffer) {
-            if ( context instanceof MustacheRenderable )
-                ((MustacheRenderable)context).renderInContext(context, buffer);
+        public final void renderInContext(final List context, final StringBuilder buffer) {
+            Object top = context.get(0);
+            if ( top instanceof MustacheRenderable )
+                ((MustacheRenderable)top).renderInContext(context, buffer);
             else
-                buffer.append( String.valueOf( context ) );
+                buffer.append( String.valueOf( top ) );
         }
 
         public final int estimateLength() {
