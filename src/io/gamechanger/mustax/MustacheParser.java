@@ -161,7 +161,7 @@ public class MustacheParser {
             if ( _context.empty() )
                 _tokens.add(token);
             else
-                _context.push( _context.pop().withAnotherChild(token) );
+                _context.peek().addChild( token );
         }
 
         public final void start(final MustacheParser parser ) {
@@ -174,7 +174,7 @@ public class MustacheParser {
         public void contextStart(final MustacheParser parser, final String varName, final boolean reversed) {
             ContextToken token = new ContextToken(varName, new MustacheToken[0], reversed);
             if ( ! _context.empty() )
-                _context.push( _context.pop().withAnotherChild(token) );
+                _context.peek().addChild( token );
             _context.push( token );
         }
 

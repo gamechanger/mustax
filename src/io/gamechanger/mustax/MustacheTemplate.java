@@ -175,7 +175,7 @@ public class MustacheTemplate {
     }
 
     static class ContextToken implements MustacheToken {
-        private final MustacheToken[] _subtokens;
+        private MustacheToken[] _subtokens;
         private final String _name;
         private final boolean _reversed;
 
@@ -260,11 +260,11 @@ public class MustacheTemplate {
             return "<ContextToken: " + _name + ":" + sb + ">";
         }
 
-        public final ContextToken withAnotherChild(final MustacheToken child) {
+        public final void addChild(final MustacheToken child) {
             MustacheToken[] tokens = new MustacheToken[_subtokens.length+1];
             System.arraycopy(_subtokens, 0, tokens, 0, _subtokens.length);
             tokens[tokens.length-1] = child;
-            return new ContextToken(_name, tokens, _reversed);
+            _subtokens = tokens;
         }
     }
 
