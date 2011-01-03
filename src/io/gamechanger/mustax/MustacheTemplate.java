@@ -229,11 +229,10 @@ public class MustacheTemplate {
                 }
 
             } else if ( subcontext instanceof MustacheOperation ) {
-                final StringBuilder sb = new StringBuilder();
-                for ( MustacheToken t : _subtokens )
-                    sb.append( t.toRepresentation() );
+                final StringBuilder subBuffer = new StringBuilder();
+                _renderSubTokens(context, subBuffer);
                 MustacheOperation op = (MustacheOperation)subcontext;
-                op.renderContents( sb.toString(), buffer );
+                op.renderContents( subBuffer.toString(), buffer );
 
             } else {
                 context.add( 0, subcontext );
