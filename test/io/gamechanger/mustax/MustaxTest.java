@@ -150,4 +150,20 @@ public class MustaxTest {
         context.put("person", people);
         assertEquals( "hi Kiril, ", template.render(context));
     }
+
+    @Test public void testBasicPartials() throws java.io.IOException {
+        Map m = new HashMap();
+        m.put("A", "hello {{#thing}}{{> B}}{{/thing}}");
+        m.put("B", "{{x}}");
+        MustacheContext ctx = new MapMustacheContext(m);
+        MustacheParser parser = new MustacheParser(ctx);
+        MustacheTemplate template = ctx.getTemplate( "A", parser );
+
+        Map view = new HashMap();
+        Map thing = new HashMap();
+        thing.put("x", "world");
+        view.put("thing", thing);
+
+        assertEquals( "hello world", template.render(view) );
+    }
 }
