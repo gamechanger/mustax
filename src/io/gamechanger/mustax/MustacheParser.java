@@ -148,7 +148,7 @@ public class MustacheParser {
 
     static final class DefaultMustacheParserDelegate implements MustacheParserDelegate {
         final List<MustacheToken> _tokens = new ArrayList();
-        Stack<ContextToken> _context = new Stack();
+        Stack<SectionToken> _context = new Stack();
 
         public DefaultMustacheParserDelegate() {
         }
@@ -172,14 +172,14 @@ public class MustacheParser {
         }
 
         public void contextStart(final MustacheParser parser, final String varName, final boolean reversed) {
-            ContextToken token = new ContextToken(varName, new MustacheToken[0], reversed);
+            SectionToken token = new SectionToken(varName, new MustacheToken[0], reversed);
             if ( ! _context.empty() )
                 _context.peek().addChild( token );
             _context.push( token );
         }
 
         public void contextEnd(final MustacheParser parser, final String varName) {
-            ContextToken ctx = null;
+            SectionToken ctx = null;
             while ( ! _context.empty() ) {
                 ctx = _context.pop();
                 if ( ctx.name().equals( varName ) )

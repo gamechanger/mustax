@@ -187,11 +187,11 @@ public class MustacheTemplate implements MustacheRenderer {
         }
     }
 
-    static class ContextToken extends SubTokenRenderer implements MustacheToken {
+    static class SectionToken extends SubTokenRenderer implements MustacheToken {
         private final String _name;
         private final boolean _reversed;
 
-        public ContextToken(String name, MustacheToken[] subtokens, boolean reversed) {
+        public SectionToken(String name, MustacheToken[] subtokens, boolean reversed) {
             super(subtokens);
             _name = name;
             _subtokens = subtokens;
@@ -238,6 +238,9 @@ public class MustacheTemplate implements MustacheRenderer {
                 return;
             }
 
+            if ( subcontext instanceof MustacheOperationGenerator )
+                subcontext = ((MustacheOperationGenerator)subcontext).generateMustacheOperation( context );
+
             if (subcontext instanceof List) {
                 for ( Object o : (List)subcontext ) {
                     if ( o == null ) continue;
@@ -275,7 +278,7 @@ public class MustacheTemplate implements MustacheRenderer {
                 sb.append(t.toString());
             }
             sb.append("]");
-            return "<ContextToken: " + _name + ":" + sb + ">";
+            return "<SectionToken: " + _name + ":" + sb + ">";
         }
 
         public final void addChild(final MustacheToken child) {
