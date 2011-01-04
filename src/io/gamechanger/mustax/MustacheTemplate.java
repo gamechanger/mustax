@@ -6,7 +6,7 @@ import java.util.*;
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 
-public class MustacheTemplate {
+public class MustacheTemplate implements MustacheRenderer {
     final MustacheToken[] _tokens;
     final int _lengthEstimate;
 
@@ -111,7 +111,7 @@ public class MustacheTemplate {
 
     // --- token classes --- //
 
-    static interface MustacheToken {
+    static interface MustacheToken extends MustacheRenderer {
         public void renderInContext(List context, StringBuilder buffer);
         public int estimateLength();
         public String toRepresentation();
@@ -174,12 +174,25 @@ public class MustacheTemplate {
         }
     }
 
-    static class ContextToken implements MustacheToken {
-        private MustacheToken[] _subtokens;
+    static class SubTokenRenderer implements MustacheRenderer {
+        protected MustacheToken[] _subtokens;
+
+        public SubTokenRenderer( MustacheToken[] subtokens ) {
+            _subtokens = subtokens;
+        }
+
+        public void renderInContext( final List context, final StringBuilder buffer ) {
+            for ( MustacheToken t : _subtokens )
+                t.renderInContext( context, buffer );
+        }
+    }
+
+    static class ContextToken extends SubTokenRenderer implements MustacheToken {
         private final String _name;
         private final boolean _reversed;
 
         public ContextToken(String name, MustacheToken[] subtokens, boolean reversed) {
+            super(subtokens);
             _name = name;
             _subtokens = subtokens;
             _reversed = reversed;
@@ -190,7 +203,12 @@ public class MustacheTemplate {
         }
 
         public final String toRepresentation() {
-            return "{{" + ( _reversed ? "^" : "#") + _name + "}}";
+            final StringBuilder b = new StringBuilder();
+            b.append( "{{" + ( _reversed ? "^" : "#") + _name + "}}" );
+            for ( MustacheToken t : _subtokens )
+                b.append( t.toRepresentation() );
+            b.append( "{{/" + _name + "}}" );
+            return b.toString();
         }
 
         private final void _renderSubTokens(final List context, final StringBuilder buffer) {
@@ -229,10 +247,11 @@ public class MustacheTemplate {
                 }
 
             } else if ( subcontext instanceof MustacheOperation ) {
-                final StringBuilder subBuffer = new StringBuilder();
-                _renderSubTokens(context, subBuffer);
                 MustacheOperation op = (MustacheOperation)subcontext;
-                op.renderContents( subBuffer.toString(), buffer );
+                final StringBuilder rawBuffer = new StringBuilder();
+                for ( MustacheToken t : _subtokens )
+                    rawBuffer.append( t.toRepresentation() );
+                op.renderContents( context, rawBuffer.toString(), new SubTokenRenderer( _subtokens ), buffer );
 
             } else {
                 context.add( 0, subcontext );
