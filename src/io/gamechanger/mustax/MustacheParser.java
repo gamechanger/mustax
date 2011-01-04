@@ -26,7 +26,7 @@ public class MustacheParser {
         _ctx = ctx;
     }
 
-    public final MustacheContext parsingContext() {
+    public final MustacheContext getContext() {
         return _ctx;
     }
 
@@ -46,7 +46,7 @@ public class MustacheParser {
     public final MustacheTemplate parse(final Reader input) throws IOException {
         MustacheParserDelegate delegate = new DefaultMustacheParserDelegate();
         parse(delegate, input);
-        return new MustacheTemplate( delegate.tokens() );
+        return new MustacheTemplate( _ctx, delegate.tokens() );
     }
 
     private final String getVarName(final StringBuilder buffer, final Reader input) throws IOException {
@@ -172,7 +172,7 @@ public class MustacheParser {
         }
 
         public void contextStart(final MustacheParser parser, final String varName, final boolean reversed) {
-            SectionToken token = new SectionToken(varName, new MustacheToken[0], reversed);
+            SectionToken token = new SectionToken(varName, new MustacheToken[0], parser.getContext(), reversed);
             if ( ! _context.empty() )
                 _context.peek().addChild( token );
             _context.push( token );
@@ -195,10 +195,8 @@ public class MustacheParser {
         }
 
         public void partial(final MustacheParser parser, final String varName) {
-            MustacheContext parsingContext = parser.parsingContext();
             try {
-                _push( new PartialToken( varName, parser.parsingContext().getTemplate(varName, parser) ) );
-                //partialTemplate = parser.parse( parsingContext.getTemplateSource( varName ) );
+                _push( new PartialToken( varName, parser.getContext().getTemplate(varName, parser) ) );
             } catch ( IOException e ) {
                 throw new UndeclaredThrowableException(e);
             }

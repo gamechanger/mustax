@@ -6,9 +6,10 @@ import java.util.*;
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 
-public class MustacheTemplate implements MustacheRenderer {
+public class MustacheTemplate {
     final MustacheToken[] _tokens;
     final int _lengthEstimate;
+    final MustacheContext _context;
 
     private static MustacheToken[] arr(final List<MustacheToken> tokens) {
         final MustacheToken[] arr = new MustacheToken[tokens.size()];
@@ -16,11 +17,12 @@ public class MustacheTemplate implements MustacheRenderer {
         return arr;
     }
 
-    public MustacheTemplate(final List<MustacheToken> tokens) {
-        this(arr(tokens));
+    public MustacheTemplate(final MustacheContext context, final List<MustacheToken> tokens) {
+        this(context, arr(tokens));
     }
 
-    public MustacheTemplate(final MustacheToken[] tokens) {
+    public MustacheTemplate(final MustacheContext context, final MustacheToken[] tokens) {
+        _context = context;
         _tokens = tokens;
         int le = 0;
         for ( MustacheToken token : tokens )
@@ -111,7 +113,7 @@ public class MustacheTemplate implements MustacheRenderer {
 
     // --- token classes --- //
 
-    static interface MustacheToken extends MustacheRenderer {
+    static interface MustacheToken {
         public void renderInContext(List context, StringBuilder buffer);
         public int estimateLength();
         public String toRepresentation();
@@ -174,27 +176,17 @@ public class MustacheTemplate implements MustacheRenderer {
         }
     }
 
-    static class SubTokenRenderer implements MustacheRenderer {
+    static class SectionToken implements MustacheToken {
         protected MustacheToken[] _subtokens;
-
-        public SubTokenRenderer( MustacheToken[] subtokens ) {
-            _subtokens = subtokens;
-        }
-
-        public void renderInContext( final List context, final StringBuilder buffer ) {
-            for ( MustacheToken t : _subtokens )
-                t.renderInContext( context, buffer );
-        }
-    }
-
-    static class SectionToken extends SubTokenRenderer implements MustacheToken {
         private final String _name;
         private final boolean _reversed;
+        private final MustacheContext _context;
 
-        public SectionToken(String name, MustacheToken[] subtokens, boolean reversed) {
-            super(subtokens);
+        public SectionToken(String name, MustacheToken[] subtokens, MustacheContext context, boolean reversed) {
+            _subtokens = subtokens;
             _name = name;
             _subtokens = subtokens;
+            _context = context;
             _reversed = reversed;
         }
 
@@ -254,7 +246,7 @@ public class MustacheTemplate implements MustacheRenderer {
                 final StringBuilder rawBuffer = new StringBuilder();
                 for ( MustacheToken t : _subtokens )
                     rawBuffer.append( t.toRepresentation() );
-                op.renderContents( context, rawBuffer.toString(), new SubTokenRenderer( _subtokens ), buffer );
+                op.renderContents( context, rawBuffer.toString(), new MustacheRenderer( new MustacheParser( _context ) ), buffer );
 
             } else {
                 context.add( 0, subcontext );
