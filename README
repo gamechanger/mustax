@@ -7,7 +7,7 @@ up doing a clean-room implementation after hacking a little bit on forks of othe
 
 So as usual, standing on shoulders, etc.
 
-    import io.gamechanger.mustax.MustacheParser
+`    import io.gamechanger.mustax.MustacheParser
     import io.gamechanger.mustax.MustacheTemplate
     import io.gamechanger.mustax.MapMustacheContext
 
@@ -15,3 +15,4 @@ So as usual, standing on shoulders, etc.
         public static void main( String... args ) {
         }
     }
+`
