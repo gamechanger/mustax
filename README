@@ -1,1 +1,17 @@
-Working it out
+A fully dependency-free Java implementation of the Mustache templating language.
+   http://mustache.github.com/
+
+I don't love re-inventing things, but I needed this one to work for a crucial project,
+and nothing I found out there did everything in the Mustache spec as designed, so I ended
+up doing a clean-room implementation after hacking a little bit on forks of other people's code.
+
+So as usual, standing on shoulders, etc.
+
+    import io.gamechanger.mustax.MustacheParser
+    import io.gamechanger.mustax.MustacheTemplate
+    import io.gamechanger.mustax.MapMustacheContext
+
+    public class Foo {
+        public static void main( String... args ) {
+        }
+    }
