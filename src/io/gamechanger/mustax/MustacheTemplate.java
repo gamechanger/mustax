@@ -168,6 +168,9 @@ public class MustacheTemplate {
 
         public final void renderInContext(final List context, final StringBuilder buffer) {
             Object val = MustacheTemplate.getValue(context, _name);
+            if ( val instanceof MustacheFunction )
+                val = ((MustacheFunction)val).invoke( context );
+
             if ( val == null ) return;
 
             if ( val instanceof MustacheRenderable ) {
@@ -226,6 +229,10 @@ public class MustacheTemplate {
 
         public final void renderInContext(final List context, final StringBuilder buffer) {
             Object subcontext = MustacheTemplate.getValue( context, _name );
+
+            if ( subcontext instanceof MustacheFunction )
+                subcontext = ((MustacheFunction)subcontext).invoke( context );
+
             if ( subcontext == null ) {
                 if ( _reversed )
                     _renderSubTokens(context, buffer);
@@ -246,9 +253,6 @@ public class MustacheTemplate {
                 return;
             }
 
-            if ( subcontext instanceof MustacheOperationGenerator )
-                subcontext = ((MustacheOperationGenerator)subcontext).generateMustacheOperation( context );
-
             if (subcontext instanceof List) {
                 for ( Object o : (List)subcontext ) {
                     if ( o == null ) continue;
@@ -257,12 +261,14 @@ public class MustacheTemplate {
                     context.remove( 0 );
                 }
 
-            } else if ( subcontext instanceof MustacheOperation ) {
-                MustacheOperation op = (MustacheOperation)subcontext;
+            } else if ( subcontext instanceof MustacheFilter ) {
+                MustacheFilter filter = (MustacheFilter)subcontext;
+
                 final StringBuilder rawBuffer = new StringBuilder();
                 for ( MustacheToken t : _subtokens )
                     rawBuffer.append( t.toRepresentation() );
-                op.renderContents( context, rawBuffer.toString(), new MustacheRenderer( new MustacheParser( _context ) ), buffer );
+
+                filter.renderContents( context, rawBuffer.toString(), new MustacheRenderer( new MustacheParser( _context ) ), buffer );
 
             } else {
                 context.add( 0, subcontext );
