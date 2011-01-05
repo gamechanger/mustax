@@ -35,7 +35,7 @@ So as usual, standing on shoulders, etc.
             view.put( "foo", fooble );
 
             System.out.println( template_y.render( view ) );
-            // should print 'this is template y, containing some yay wow'
+            // should print 'this is template y, containing some this is template x, yay wow'
         }
 
         static class Fooble {
