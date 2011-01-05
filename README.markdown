@@ -2,6 +2,7 @@ A fully dependency-free Java implementation of the Mustache templating language.
    http://mustache.github.com/
 
 Goals:
+
 * Android compatible (no runtime compilation, etc.)
 * Lightweight
 * Efficient
