@@ -169,17 +169,10 @@ public class MustacheTemplate {
         public final void renderInContext(final List context, final StringBuilder buffer) {
             Object val = MustacheTemplate.getValue(context, _name);
             if ( val instanceof MustacheFunction )
-                val = ((MustacheFunction)val).invoke( context );
+                val = ((MustacheFunction)val).invoke( context, buffer );
 
-            if ( val == null ) return;
-
-            if ( val instanceof MustacheRenderable ) {
-                MustacheRenderable r = (MustacheRenderable)val;
-                r.renderInContext(context, buffer);
-
-            } else {
+            if ( val != null )
                 buffer.append( String.valueOf( val ) );
-            }
         }
 
         public final int estimateLength() {
@@ -231,7 +224,7 @@ public class MustacheTemplate {
             Object subcontext = MustacheTemplate.getValue( context, _name );
 
             if ( subcontext instanceof MustacheFunction )
-                subcontext = ((MustacheFunction)subcontext).invoke( context );
+                subcontext = ((MustacheFunction)subcontext).invoke( context, buffer );
 
             if ( subcontext == null ) {
                 if ( _reversed )
@@ -335,12 +328,12 @@ public class MustacheTemplate {
             return "{{.}}";
         }
 
-        public final void renderInContext(final List context, final StringBuilder buffer) {
-            Object top = context.get(0);
-            if ( top instanceof MustacheRenderable )
-                ((MustacheRenderable)top).renderInContext(context, buffer);
-            else
-                buffer.append( String.valueOf( top ) );
+        public final void renderInContext( final List context, final StringBuilder buffer ) {
+            Object that = context.get(0);
+            if ( that instanceof MustacheFunction )
+                that = ((MustacheFunction)that).invoke( context, buffer );
+            if ( that != null ) // function can either render itself, or return a value
+                buffer.append( String.valueOf( that ) );
         }
 
         public final int estimateLength() {
