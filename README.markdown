@@ -43,3 +43,6 @@ So as usual, standing on shoulders, etc.
         }
     }
 
+Apache-licensed, see the LICENSE file.
+
+http://github.com/kiril/mustax
