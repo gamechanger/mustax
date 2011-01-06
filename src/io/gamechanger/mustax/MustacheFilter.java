@@ -18,5 +18,5 @@
 package io.gamechanger.mustax;
 
 public interface MustacheFilter {
-    public void renderContents( java.util.List context, String content, MustacheRenderer renderer, StringBuilder buffer );
+    public void renderContents( java.util.Stack context, String content, MustacheRenderer renderer, StringBuilder buffer );
 }

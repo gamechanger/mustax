@@ -69,17 +69,17 @@ public class MustacheTemplate {
     }
 
     public final void render(final Object context, final StringBuilder buffer) {
-        LinkedList contextStack = new LinkedList();
+        Stack contextStack = new Stack();
         contextStack.add( context );
         renderInContext( contextStack, buffer );
     }
 
-    public final void renderInContext(final List context, final StringBuilder buffer) {
+    public final void renderInContext(final Stack context, final StringBuilder buffer) {
         for ( MustacheToken token : _tokens )
             token.renderInContext(context, buffer);
     }
 
-    public static Object getValue(final List context, final String name) {
+    public static Object getValue(final Stack context, final String name) {
 
         for ( Object object : context ) {
 
@@ -130,7 +130,7 @@ public class MustacheTemplate {
     // --- token classes --- //
 
     static interface MustacheToken {
-        public void renderInContext(List context, StringBuilder buffer);
+        public void renderInContext(Stack context, StringBuilder buffer);
         public int estimateLength();
         public String toRepresentation();
     }
@@ -142,7 +142,7 @@ public class MustacheTemplate {
             _txt = txt;
         }
 
-        public final void renderInContext(final List context, final StringBuilder buffer) {
+        public final void renderInContext(final Stack context, final StringBuilder buffer) {
             buffer.append(_txt);
         }
 
@@ -166,7 +166,7 @@ public class MustacheTemplate {
             _name = name;
         }
 
-        public final void renderInContext(final List context, final StringBuilder buffer) {
+        public final void renderInContext(final Stack context, final StringBuilder buffer) {
             Object val = MustacheTemplate.getValue(context, _name);
             if ( val instanceof MustacheFunction )
                 val = ((MustacheFunction)val).invoke( context, buffer );
@@ -215,59 +215,68 @@ public class MustacheTemplate {
             return b.toString();
         }
 
-        private final void _renderSubTokens(final List context, final StringBuilder buffer) {
+        private final void _renderSubTokens(final Stack context, final StringBuilder buffer) {
             for ( MustacheToken t : _subtokens )
-                t.renderInContext(context, buffer);
+                t.renderInContext( context, buffer );
         }
 
-        public final void renderInContext(final List context, final StringBuilder buffer) {
+        private final void _renderSubTokensInSubcontext( final Stack context, final StringBuilder buffer, final Object subcontext ) {
+            context.push( subcontext );
+            _renderSubTokens( context, buffer );
+            context.pop();
+        }
+
+        private final boolean _isTruthy( Object o ) {
+            if ( o == null )
+                return false;
+            if ( o instanceof Boolean && ((Boolean)o).booleanValue() == false )
+                return false;
+            if ( o instanceof Number && ((Number)o).intValue() == 0 )
+                return false;
+            return true;
+        }
+
+        private final String _rawContent() {
+            final StringBuilder rawBuffer = new StringBuilder();
+            for ( MustacheToken t : _subtokens )
+                rawBuffer.append( t.toRepresentation() );
+            return rawBuffer.toString();
+        }
+
+        private final MustacheRenderer _subRenderer() {
+            return new MustacheRenderer( new MustacheParser( _context ) );
+        }
+
+        private final void _renderListSubcontext( final List subcontexts, final Stack context, final StringBuilder buffer ) {
+            for ( Object subcontext : subcontexts )
+                if ( subcontext != null )
+                    _renderSubTokensInSubcontext( context, buffer, subcontext );
+        }
+
+        private final void _renderFilter( final MustacheFilter f, final Stack context, final StringBuilder buffer ) {
+            f.renderContents( context, _rawContent(), _subRenderer(), buffer );
+        }
+
+        public final void renderInContext(final Stack context, final StringBuilder buffer) {
             Object subcontext = MustacheTemplate.getValue( context, _name );
 
             if ( subcontext instanceof MustacheFunction )
                 subcontext = ((MustacheFunction)subcontext).invoke( context, buffer );
 
-            if ( subcontext == null ) {
-                if ( _reversed )
-                    _renderSubTokens(context, buffer);
-                return;
-            } else if ( _reversed )
-                return;
+            final boolean truthinessRequirement = _reversed ? false : true;
+            final boolean isTruthy = _isTruthy( subcontext );
 
-            boolean truthiness = ! _reversed;
-            if ( subcontext instanceof Boolean ) {
-                if ( ((Boolean)subcontext).booleanValue() == truthiness )
-                    _renderSubTokens(context, buffer);
+            if ( isTruthy != truthinessRequirement )
                 return;
 
-            } else if ( subcontext instanceof Number ) {
-                Number n = (Number)subcontext;
-                if ( ( n.intValue() != 0 ) == truthiness )
-                    _renderSubTokens(context, buffer);
-                return;
-            }
-
-            if (subcontext instanceof List) {
-                for ( Object o : (List)subcontext ) {
-                    if ( o == null ) continue;
-                    context.add( 0, o );
-                    _renderSubTokens(context, buffer);
-                    context.remove( 0 );
-                }
-
-            } else if ( subcontext instanceof MustacheFilter ) {
-                MustacheFilter filter = (MustacheFilter)subcontext;
-
-                final StringBuilder rawBuffer = new StringBuilder();
-                for ( MustacheToken t : _subtokens )
-                    rawBuffer.append( t.toRepresentation() );
-
-                filter.renderContents( context, rawBuffer.toString(), new MustacheRenderer( new MustacheParser( _context ) ), buffer );
-
-            } else {
-                context.add( 0, subcontext );
-                _renderSubTokens(context, buffer);
-                context.remove( 0 );
-            }
+            if ( ! isTruthy )
+                _renderSubTokens( context, buffer ); // reversed
+            else if ( subcontext instanceof List )
+                _renderListSubcontext( (List)subcontext, context, buffer );
+            else if ( subcontext instanceof MustacheFilter )
+                _renderFilter( (MustacheFilter)subcontext, context, buffer );
+            else
+                _renderSubTokensInSubcontext( context, buffer, subcontext );
         }
 
         public final int estimateLength() {
@@ -309,7 +318,7 @@ public class MustacheTemplate {
             return "{{> " + _name + "}}";
         }
 
-        public final void renderInContext(final List context, final StringBuilder buffer) {
+        public final void renderInContext(final Stack context, final StringBuilder buffer) {
             _template.renderInContext(context, buffer);
         }
 
@@ -328,7 +337,7 @@ public class MustacheTemplate {
             return "{{.}}";
         }
 
-        public final void renderInContext( final List context, final StringBuilder buffer ) {
+        public final void renderInContext( final Stack context, final StringBuilder buffer ) {
             Object that = context.get(0);
             if ( that instanceof MustacheFunction )
                 that = ((MustacheFunction)that).invoke( context, buffer );

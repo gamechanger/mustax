@@ -18,7 +18,7 @@
 
 package io.gamechanger.mustax;
 
-import java.util.List;
+import java.util.Stack;
 
 public class MustacheRenderer {
     final MustacheParser _parser;
@@ -27,7 +27,7 @@ public class MustacheRenderer {
         _parser = parser;
     }
 
-    public void render( final String templateText, final List context, final StringBuilder buffer ) {
+    public void render( final String templateText, final Stack context, final StringBuilder buffer ) {
         MustacheTemplate template = _parser.parse( templateText );
         template.renderInContext( context, buffer );
     }

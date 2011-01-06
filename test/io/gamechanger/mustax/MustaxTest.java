@@ -166,4 +166,42 @@ public class MustaxTest {
 
         assertEquals( "hello world", template.render(view) );
     }
+
+    @Test public void testBooleanSection() throws java.io.IOException {
+        Map m = new HashMap();
+        m.put( "X", "{{#a}}A{{/a}{{#b}}B{{/b}}{{^c}}!C{{/c}}" );
+        MustacheContext ctx = new MapMustacheContext(m);
+        MustacheParser parser = new MustacheParser(ctx);
+        MustacheTemplate template = ctx.getTemplate( "X", parser );
+
+        Map view = new HashMap();
+        view.put( "a", true );
+        view.put( "b", true );
+        view.put( "c", true );
+        assertEquals( "AB", template.render( view ) );
+        view.put( "c", false );
+        assertEquals( "AB!C", template.render( view ) );
+        view.put( "a", false );
+        assertEquals( "B!C", template.render( view ) );
+    }
+
+    @Test public void testIntegerSection() throws java.io.IOException {
+        Map m = new HashMap();
+        m.put( "X", "{{#a}}A{{/a}{{#b}}B{{/b}}{{^c}}!C{{/c}}" );
+        MustacheContext ctx = new MapMustacheContext(m);
+        MustacheParser parser = new MustacheParser(ctx);
+        MustacheTemplate template = ctx.getTemplate( "X", parser );
+
+        Map view = new HashMap();
+        view.put( "a", 777 );
+        view.put( "b", 3 );
+        view.put( "c", 1 );
+        assertEquals( "AB", template.render( view ) );
+        view.put( "c", 0 );
+        assertEquals( "AB!C", template.render( view ) );
+        view.put( "a", 0 );
+        assertEquals( "B!C", template.render( view ) );
+        view.put( "a", -1 );
+        assertEquals( "AB!C", template.render( view ) );
+    }
 }

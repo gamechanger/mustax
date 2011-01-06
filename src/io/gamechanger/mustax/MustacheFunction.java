@@ -18,5 +18,5 @@
 package io.gamechanger.mustax;
 
 public interface MustacheFunction {
-    public Object invoke( java.util.List context, StringBuilder buffer );
+    public Object invoke( java.util.Stack context, StringBuilder buffer );
 }
