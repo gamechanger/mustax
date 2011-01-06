@@ -81,7 +81,9 @@ public class MustacheTemplate {
 
     public static Object getValue(final Stack context, final String name) {
 
-        for ( Object object : context ) {
+        final int len = context.size();
+        for ( int i = len-1; i >= 0; i-- ) {
+            Object object = context.get( i );
 
             if ( object == null )
                 continue;
@@ -215,17 +217,6 @@ public class MustacheTemplate {
             return b.toString();
         }
 
-        private final void _renderSubTokens(final Stack context, final StringBuilder buffer) {
-            for ( MustacheToken t : _subtokens )
-                t.renderInContext( context, buffer );
-        }
-
-        private final void _renderSubTokensInSubcontext( final Stack context, final StringBuilder buffer, final Object subcontext ) {
-            context.push( subcontext );
-            _renderSubTokens( context, buffer );
-            context.pop();
-        }
-
         private final boolean _isTruthy( Object o ) {
             if ( o == null )
                 return false;
@@ -245,6 +236,17 @@ public class MustacheTemplate {
 
         private final MustacheRenderer _subRenderer() {
             return new MustacheRenderer( new MustacheParser( _context ) );
+        }
+
+        private final void _renderSubTokens(final Stack context, final StringBuilder buffer) {
+            for ( MustacheToken t : _subtokens )
+                t.renderInContext( context, buffer );
+        }
+
+        private final void _renderSubTokensInSubcontext( final Stack context, final StringBuilder buffer, final Object subcontext ) {
+            context.push( subcontext );
+            _renderSubTokens( context, buffer );
+            context.pop();
         }
 
         private final void _renderListSubcontext( final List subcontexts, final Stack context, final StringBuilder buffer ) {
@@ -338,7 +340,7 @@ public class MustacheTemplate {
         }
 
         public final void renderInContext( final Stack context, final StringBuilder buffer ) {
-            Object that = context.get(0);
+            Object that = context.peek();
             if ( that instanceof MustacheFunction )
                 that = ((MustacheFunction)that).invoke( context, buffer );
             if ( that != null ) // function can either render itself, or return a value
